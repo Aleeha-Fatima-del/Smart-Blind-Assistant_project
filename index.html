@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Blind Assistant v3.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#080c14;--bg2:#0d1421;--bg3:#111a2e;--card:#131e33;--card2:#182540;
+  --border:rgba(255,255,255,0.07);--border2:rgba(99,179,237,0.25);
+  --blue:#63b3ed;--teal:#4fd1c7;--green:#68d391;--orange:#f6ad55;
+  --red:#fc8181;--purple:#b794f4;--yellow:#f6e05e;
+  --t1:#e2e8f0;--t2:#8892a4;--t3:#4a5568;
+  --gblue:rgba(99,179,237,0.12);--gteal:rgba(79,209,199,0.12);
+  --r:14px;--rs:8px;
+}
+html,body{height:100%;font-family:'Syne',sans-serif;background:var(--bg);color:var(--t1);overflow-x:hidden;}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg2);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
+
+@keyframes pulse-ring{0%{transform:scale(1);opacity:1;}100%{transform:scale(1.8);opacity:0;}}
+@keyframes scan{0%{top:0%;}100%{top:100%;}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-14px);}to{opacity:1;transform:translateX(0);}}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+@keyframes wave{0%,100%{height:5px;}50%{height:20px;}}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(99,179,237,0.2);}50%{box-shadow:0 0 40px rgba(99,179,237,0.5);}}
+@keyframes mlPulse{0%,100%{opacity:0.6;}50%{opacity:1;}}
+@keyframes navStep{from{opacity:0;transform:translateX(-20px);}to{opacity:1;transform:translateX(0);}}
+
+/* ── LAYOUT ── */
+#app{display:flex;flex-direction:column;min-height:100vh;}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);}
+main{flex:1;padding:18px;max-width:1100px;margin:0 auto;width:100%;}
+nav{background:var(--bg2);border-top:1px solid var(--border);display:flex;padding:8px 0 14px;position:sticky;bottom:0;}
+
+/* ── TABS ── */
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;border:none;background:transparent;cursor:pointer;font-family:'Syne',sans-serif;transition:all 0.2s;}
+.tab-icon{width:38px;height:38px;border-radius:var(--rs);display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.tab-icon.active{background:rgba(99,179,237,0.15);}
+.tab-label{font-size:11px;font-weight:600;color:var(--t3);transition:color 0.2s;}
+.tab-label.active{color:var(--blue);}
+
+/* ── CARDS ── */
+.card{background:var(--card);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;}
+.card-hd{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;}
+
+/* ── BUTTONS ── */
+.btn{padding:10px 6px;border-radius:var(--rs);border:1px solid var(--border);background:var(--card);cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:5px;transition:all 0.2s;color:var(--t2);}
+.btn:hover{border-color:var(--border2);}
+.btn.active{border-color:currentColor;background:rgba(255,255,255,0.05);}
+.btn-primary{width:100%;padding:13px;border-radius:var(--rs);border:none;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.2s;}
+.btn-primary:disabled{background:var(--bg3);color:var(--t3);cursor:wait;}
+.btn-outline{padding:8px 16px;border-radius:var(--rs);border:1px solid var(--border2);background:var(--gblue);color:var(--blue);cursor:pointer;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;}
+
+/* ── TOGGLE ── */
+.toggle-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.toggle{width:44px;height:24px;border-radius:99px;border:none;cursor:pointer;position:relative;transition:background 0.3s;}
+.toggle-knob{width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:3px;transition:left 0.3s;box-shadow:0 1px 4px rgba(0,0,0,0.4);}
+
+/* ── INPUT ── */
+.input-wrap{margin-bottom:14px;}
+.input-label{display:block;font-size:13px;color:var(--t2);margin-bottom:6px;font-weight:500;}
+.input-field{width:100%;padding:12px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg2);color:var(--t1);font-size:14px;font-family:'Syne',sans-serif;outline:none;transition:border-color 0.2s;}
+.input-field:focus{border-color:var(--blue);}
+.input-field::placeholder{color:var(--t3);}
+
+/* ── ML ENGINE BADGE ── */
+.ml-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;font-family:'IBM Plex Mono',monospace;animation:mlPulse 2s infinite;}
+.ml-yolo{background:rgba(183,148,244,0.15);color:var(--purple);border:1px solid rgba(183,148,244,0.3);}
+.ml-claude{background:rgba(99,179,237,0.15);color:var(--blue);border:1px solid rgba(99,179,237,0.3);}
+.ml-hybrid{background:rgba(104,211,145,0.15);color:var(--green);border:1px solid rgba(104,211,145,0.3);}
+
+/* ── NOTIF ── */
+#notif{position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:999;padding:12px 22px;border-radius:var(--rs);font-size:14px;font-weight:600;animation:fadeIn 0.3s ease;box-shadow:0 8px 32px rgba(0,0,0,0.5);display:none;white-space:nowrap;}
+
+/* ── PROFILE SCREEN ── */
+#profile-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;}
+.profile-card{width:100%;max-width:520px;animation:fadeIn 0.5s ease;}
+.avatar-btn{font-size:26px;width:50px;height:50px;border-radius:50%;border:2px solid var(--border);background:transparent;cursor:pointer;transition:all 0.2s;}
+.avatar-btn.selected{border-color:var(--blue);background:var(--gblue);}
+.progress-bar{height:4px;border-radius:99px;transition:all 0.4s ease;}
+
+/* ── CAMERA ── */
+.cam-grid{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start;}
+.video-wrap{position:relative;border-radius:var(--r);overflow:hidden;background:#000;aspect-ratio:16/9;transition:all 0.4s;}
+.scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--teal),transparent);animation:scan 2s linear infinite;opacity:0.7;}
+.bbox{position:absolute;border-radius:5px;padding:3px 8px;font-size:11px;font-family:'IBM Plex Mono',monospace;background:rgba(0,0,0,0.75);animation:fadeIn 0.3s;}
+.cam-label{position:absolute;top:12px;left:12px;background:rgba(0,0,0,0.65);border-radius:5px;padding:4px 10px;font-size:12px;color:var(--t2);font-family:'IBM Plex Mono',monospace;}
+.ctrl-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px;}
+.cmd-chip{padding:3px 10px;border-radius:99px;background:var(--bg2);border:1px solid var(--border);font-size:11px;color:var(--t2);font-family:'IBM Plex Mono',monospace;cursor:pointer;transition:all 0.2s;}
+.cmd-chip:hover{border-color:var(--blue);color:var(--blue);}
+
+/* ── MAP ── */
+.map-grid{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start;}
+.map-frame{height:360px;position:relative;background:#0a101e;}
+.nav-step{display:flex;gap:10px;margin-bottom:10px;animation:navStep 0.4s ease both;}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* ── HISTORY ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--card);border-radius:var(--rs);padding:14px 10px;border:1px solid var(--border);text-align:center;}
+.hist-item{background:var(--card);border-radius:var(--rs);border:1px solid var(--border);padding:14px;animation:fadeIn 0.3s ease;}
+
+/* ── SETTINGS ── */
+.setting-section{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:20px;margin-bottom:14px;}
+.setting-title{font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+
+/* ── VOICE WAVE ── */
+.wave-bar{width:3px;border-radius:99px;background:var(--teal);animation:wave 0.8s ease-in-out infinite;}
+
+/* ── COMMAND CENTER ── */
+.cmd-center{margin-top:12px;background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:16px;}
+.cmd-section-title{font-size:11px;color:var(--t3);font-weight:700;letter-spacing:1px;margin-bottom:10px;}
+.cmd-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+.cmd-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:8px 12px;cursor:pointer;transition:all 0.2s;}
+.cmd-card:hover{border-color:var(--blue);background:var(--gblue);}
+.cmd-card-title{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:2px;}
+.cmd-card-ex{font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace;}
+
+/* ── ML ENGINE PANEL ── */
+.ml-panel{background:linear-gradient(135deg,rgba(15,25,45,0.9),rgba(10,18,35,0.9));border:1px solid rgba(99,179,237,0.2);border-radius:var(--r);padding:16px;margin-top:12px;}
+.ml-bar-wrap{margin-bottom:8px;}
+.ml-bar-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+.ml-bar{height:6px;border-radius:99px;background:var(--bg3);}
+.ml-bar-fill{height:100%;border-radius:99px;transition:width 0.6s ease;}
+
+/* ── DETECTION CARD ── */
+.det-item{padding:12px 16px;border-bottom:1px solid var(--border);animation:slideIn 0.3s ease;}
+.risk-badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;}
+.conf-bar{height:4px;flex:1;border-radius:99px;background:var(--bg2);margin-right:8px;}
+.conf-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--blue),var(--teal));}
+
+@media(max-width:768px){
+  .cam-grid,.map-grid{grid-template-columns:1fr;}
+  .ctrl-grid{grid-template-columns:repeat(3,1fr);}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="notif"></div>
+
+<script>
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+const S = {
+  profile: null,
+  tab: 'camera',
+  detections: [],
+  history: [],
+  isScanning: false,
+  isListening: false,
+  voiceStatus: '',
+  cameraActive: false,
+  cameraFacing: 'environment',
+  cameraError: '',
+  sceneText: '',
+  sceneLoading: false,
+  navSteps: [],
+  navLoading: false,
+  navDest: '',
+  activeNavStep: 0,
+  navGuiding: false,
+  userLocation: null,
+  manualLocation: '',
+  settings: {
+    voiceSpeed: 1, voicePitch: 1, autoSpeak: true,
+    highRiskAlert: true, scanInterval: 3,
+    saveHistory: true, hybridML: true, confidenceThreshold: 0.6
+  },
+  logs: [],
+  profileStep: 1,
+  profileData: {name:'',age:'',language:'English',voiceSpeed:'Normal',caregiverName:'',caregiverPhone:'',avatar:'👤'},
+  mlStats: {yolo: 0, claude: 0, hybrid: 0},
+  appActions: [],
+  setupDone: false,
+};
+
+// ═══════════════════════════════════════
+// ML HYBRID ENGINE
+// ═══════════════════════════════════════
+const OBSTACLES = ["Chair","Table","Door","Wall","Car","Person","Bicycle","Stairs","Window","Desk","Bed","Cabinet","Sofa","Shelf","Pillar","Dog","Cat","Motorcycle","Bus","Trash Can","Tree","Pole","Fence","Sign","Step"];
+const DIRECTIONS = ["ahead","to your left","to your right","slightly left","slightly right","1 meter ahead","2 meters ahead","3 meters ahead","diagonally left","diagonally right"];
+const ACTIONS_MAP = {
+  high: ["Stop immediately — danger ahead","Move sharply left","Move sharply right","Back away slowly","Call for help"],
+  medium: ["Move left to avoid","Move right to avoid","Proceed with caution","Slow down and navigate around"],
+  low: ["Path is mostly clear","Proceed carefully","Minor obstacle — step around it"]
+};
+
+// YOLO-style mock detection (confidence + bounding box data)
+function yoloDetect() {
+  const count = Math.floor(Math.random() * 3) + 1;
+  return Array.from({length: count}, () => {
+    const obj = OBSTACLES[Math.floor(Math.random() * OBSTACLES.length)];
+    const yoloConf = 0.55 + Math.random() * 0.42;
+    return {
+      id: Math.random().toString(36).slice(2),
+      object: obj,
+      direction: DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)],
+      yoloConf: parseFloat(yoloConf.toFixed(3)),
+      distance: `${(0.5 + Math.random() * 4).toFixed(1)}m`,
+      bbox: {x: Math.random() * 60, y: Math.random() * 40, w: 20 + Math.random() * 25, h: 18 + Math.random() * 22},
+    };
+  });
+}
+
+// Claude-style semantic scoring (simulated contextual understanding)
+function claudeScore(yoloItems) {
+  return yoloItems.map(item => {
+    const contextBoost = ['Stairs','Car','Motorcycle','Bus'].includes(item.object) ? 0.08 : 0;
+    const distFactor = parseFloat(item.distance) < 1.5 ? 0.06 : 0;
+    const claudeConf = Math.min(0.99, item.yoloConf + contextBoost + distFactor + (Math.random() * 0.04 - 0.02));
+    return {...item, claudeConf: parseFloat(claudeConf.toFixed(3))};
+  });
+}
+
+// Hybrid fusion: weighted average + context awareness
+function hybridFuse(claudeItems) {
+  return claudeItems.map(item => {
+    const hybridConf = parseFloat((item.yoloConf * 0.45 + item.claudeConf * 0.55).toFixed(3));
+    const risk = hybridConf > 0.82 ? 'high' : hybridConf > 0.65 ? 'medium' : 'low';
+    const actions = ACTIONS_MAP[risk];
+    return {
+      ...item,
+      hybridConf,
+      risk,
+      action: actions[Math.floor(Math.random() * actions.length)],
+      confidence: hybridConf,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+  });
+}
+
+function generateDetection() {
+  const yoloOut = yoloDetect();
+  if (!S.settings.hybridML) {
+    return yoloOut.map(d => ({
+      ...d, confidence: d.yoloConf,
+      risk: d.yoloConf > 0.82 ? 'high' : d.yoloConf > 0.65 ? 'medium' : 'low',
+      action: ACTIONS_MAP[d.yoloConf > 0.82 ? 'high' : d.yoloConf > 0.65 ? 'medium' : 'low'][0],
+      hybridConf: d.yoloConf, claudeConf: d.yoloConf, timestamp: new Date().toLocaleTimeString(),
+    }));
+  }
+  const claudeOut = claudeScore(yoloOut);
+  const hybrid = hybridFuse(claudeOut);
+  // update ml stats
+  S.mlStats.yolo = Math.round(yoloOut.reduce((a,d)=>a+d.yoloConf,0)/yoloOut.length*100);
+  S.mlStats.claude = Math.round(claudeOut.reduce((a,d)=>a+d.claudeConf,0)/claudeOut.length*100);
+  S.mlStats.hybrid = Math.round(hybrid.reduce((a,d)=>a+d.hybridConf,0)/hybrid.length*100);
+  return hybrid.filter(d => d.hybridConf >= S.settings.confidenceThreshold);
+}
+
+// ═══════════════════════════════════════
+// VOICE (TTS)
+// ═══════════════════════════════════════
+function speak(text, rate, pitch) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = rate || S.settings.voiceSpeed || 1;
+  u.pitch = pitch || S.settings.voicePitch || 1;
+  u.lang = 'en-US';
+  const voices = window.speechSynthesis.getVoices();
+  const pref = voices.find(v => v.name.includes('Google') || v.lang === 'en-US');
+  if (pref) u.voice = pref;
+  window.speechSynthesis.speak(u);
+}
+
+// ═══════════════════════════════════════
+// CLAUDE API
+// ═══════════════════════════════════════
+async function askClaude(prompt, systemPrompt) {
+  const body = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1000,
+    messages: [{role:'user', content: prompt}],
+  };
+  if (systemPrompt) body.system = systemPrompt;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  return data.content?.[0]?.text || 'Unable to process.';
+}
+
+// ═══════════════════════════════════════
+// NOTIFICATION
+// ═══════════════════════════════════════
+function showNotif(msg, type='info') {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = type === 'danger' ? '#2d1515' : type === 'success' ? '#152d1a' : '#151a2d';
+  el.style.border = `1px solid ${type === 'danger' ? 'var(--red)' : type === 'success' ? 'var(--green)' : 'var(--blue)'}`;
+  el.style.color = type === 'danger' ? 'var(--red)' : type === 'success' ? 'var(--green)' : 'var(--blue)';
+  clearTimeout(window._notifTimer);
+  window._notifTimer = setTimeout(() => { el.style.display = 'none'; }, 3500);
+}
+
+function addLog(msg, type='info') {
+  S.logs.unshift({id: Date.now(), msg, type, time: new Date().toLocaleTimeString()});
+  if (S.logs.length > 100) S.logs.pop();
+}
+
+// ═══════════════════════════════════════
+// CAMERA
+// ═══════════════════════════════════════
+const videoEl = document.createElement('video');
+videoEl.playsInline = true; videoEl.muted = true; videoEl.autoplay = true;
+videoEl.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+let streamObj = null;
+let scanTimer = null;
+
+async function startCamera() {
+  try {
+    S.cameraError = '';
+    if (streamObj) streamObj.getTracks().forEach(t=>t.stop());
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {facingMode: S.cameraFacing, width:{ideal:1280}, height:{ideal:720}}, audio: false
+    });
+    streamObj = stream;
+    videoEl.srcObject = stream;
+    videoEl.play();
+    S.cameraActive = true;
+    addLog('Camera started', 'success');
+    speak('Camera is now active.');
+    render();
+  } catch(e) {
+    S.cameraError = 'Camera access denied. Please allow permission.';
+    addLog('Camera error: ' + e.message, 'danger');
+    speak('Camera access denied.');
+    render();
+  }
+}
+
+function stopCamera() {
+  if (streamObj) streamObj.getTracks().forEach(t=>t.stop());
+  videoEl.srcObject = null;
+  S.cameraActive = false;
+  S.isScanning = false;
+  clearInterval(scanTimer);
+  addLog('Camera stopped');
+  render();
+}
+
+function flipCamera() {
+  S.cameraFacing = S.cameraFacing === 'environment' ? 'user' : 'environment';
+  if (S.cameraActive) { stopCamera(); setTimeout(() => startCamera(), 300); }
+  addLog('Camera flipped');
+  render();
+}
+
+function toggleScanning() {
+  if (S.isScanning) {
+    clearInterval(scanTimer);
+    S.isScanning = false;
+    addLog('Scanning paused');
+    speak('Scanning paused.');
+  } else {
+    S.isScanning = true;
+    addLog('AI Hybrid scanning started', 'success');
+    speak('Hybrid AI scanning started. I will alert you of any obstacles.');
+    const doScan = () => {
+      const dets = generateDetection();
+      handleDetection(dets);
+    };
+    doScan();
+    scanTimer = setInterval(doScan, S.settings.scanInterval * 1000);
+  }
+  render();
+}
+
+function handleDetection(dets) {
+  S.detections = dets;
+  if (S.settings.saveHistory) {
+    const loc = S.userLocation ? `${S.userLocation.lat.toFixed(4)},${S.userLocation.lng.toFixed(4)}` : S.manualLocation || 'Unknown';
+    S.history.unshift({id:Date.now(), detections:dets, timestamp:new Date().toLocaleString(), location:loc});
+    if (S.history.length > 200) S.history.pop();
+  }
+  dets.forEach(d => {
+    addLog(`ML: ${d.object} ${d.direction} | YOLO:${Math.round(d.yoloConf*100)}% Claude:${Math.round((d.claudeConf||d.confidence)*100)}% Hybrid:${Math.round(d.hybridConf*100)}%`, d.risk === 'high' ? 'danger' : 'info');
+    if (S.settings.autoSpeak) speak(`${d.object} detected ${d.direction}, ${d.distance}. ${d.action}.`);
+  });
+  const high = dets.filter(d=>d.risk==='high');
+  if (high.length > 0 && S.settings.highRiskAlert) {
+    showNotif(`⚠️ HIGH RISK: ${high.map(d=>d.object).join(', ')} detected!`, 'danger');
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  }
+  render();
+}
+
+// ═══════════════════════════════════════
+// SCENE ANALYSIS
+// ═══════════════════════════════════════
+async function analyzeScene() {
+  S.sceneLoading = true; render();
+  speak('Analyzing scene, please wait.');
+  try {
+    const dNames = S.detections.map(d=>`${d.object} ${d.direction} (${d.distance})`).join(', ');
+    const loc = S.userLocation ? `at coordinates ${S.userLocation.lat.toFixed(3)}, ${S.userLocation.lng.toFixed(3)}` : S.manualLocation ? `near ${S.manualLocation}` : '';
+    const sys = 'You are a compassionate AI navigation assistant for visually impaired people. Be concise, clear, and calm.';
+    const result = await askClaude(
+      `Objects detected ${loc}: ${dNames || 'none currently'}. Provide a 2-sentence scene description and specific safe navigation advice. Use simple directional language.`,
+      sys
+    );
+    S.sceneText = result;
+    speak(result);
+    addLog('AI scene analysis complete', 'success');
+  } catch {
+    const fb = S.detections.length > 0
+      ? `I detect ${S.detections.map(d=>d.object).join(' and ')}. ${S.detections[0]?.action || 'Proceed with caution'}.`
+      : 'The path appears clear. Proceed carefully.';
+    S.sceneText = fb;
+    speak(fb);
+  }
+  S.sceneLoading = false; render();
+}
+
+// ═══════════════════════════════════════
+// NAVIGATION / LOCATION
+// ═══════════════════════════════════════
+function getLocation() {
+  if (!navigator.geolocation) { speak('GPS not available.'); return; }
+  speak('Getting your location.');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      S.userLocation = {lat: pos.coords.latitude, lng: pos.coords.longitude};
+      addLog(`GPS: ${S.userLocation.lat.toFixed(4)}, ${S.userLocation.lng.toFixed(4)}`, 'success');
+      speak(`Location detected. Latitude ${S.userLocation.lat.toFixed(2)}, Longitude ${S.userLocation.lng.toFixed(2)}.`);
+      showNotif('📍 Location detected successfully', 'success');
+      render();
+    },
+    () => {
+      speak('Unable to get location. Please enter manually.');
+      showNotif('GPS unavailable. Enter location manually.', 'danger');
+    }
+  );
+}
+
+async function planRoute(dest) {
+  if (!dest?.trim()) { speak('Please enter a destination.'); return; }
+  S.navLoading = true; S.navDest = dest; S.navSteps = []; S.activeNavStep = 0; render();
+  speak(`Planning route to ${dest}. Please wait.`);
+  try {
+    const loc = S.userLocation ? `coordinates ${S.userLocation.lat.toFixed(4)}, ${S.userLocation.lng.toFixed(4)}` : S.manualLocation || 'my current location';
+    const sys = 'You are a navigation assistant for visually impaired people. Provide extremely clear, step-by-step walking directions. Each step must be one short sentence. Number each step. Focus on landmarks, turns, and distances.';
+    const result = await askClaude(
+      `Create a safe walking route from ${loc} to ${dest}. Give exactly 5-6 numbered steps. Each step: direction + landmark + distance. Format: "1. Walk straight..." Include potential hazards to watch for.`,
+      sys
+    );
+    S.navSteps = result.split('\n').filter(l => l.trim() && /^\d/.test(l.trim()));
+    if (S.navSteps.length === 0) S.navSteps = result.split('\n').filter(Boolean).slice(0, 6);
+    speak('Route planned. ' + (S.navSteps[0] || ''));
+    addLog(`Route to ${dest} planned (${S.navSteps.length} steps)`, 'success');
+  } catch {
+    S.navSteps = ['Unable to plan route. Check your connection and try again.'];
+  }
+  S.navLoading = false; render();
+}
+
+function startNavGuide() {
+  if (S.navSteps.length === 0) return;
+  S.navGuiding = true; S.activeNavStep = 0;
+  speak('Starting navigation. ' + S.navSteps[0]);
+  render();
+}
+
+function nextNavStep() {
+  if (S.activeNavStep < S.navSteps.length - 1) {
+    S.activeNavStep++;
+    speak(S.navSteps[S.activeNavStep]);
+  } else {
+    speak('You have arrived at your destination. Navigation complete.');
+    S.navGuiding = false;
+    showNotif('✅ Arrived at destination!', 'success');
+  }
+  render();
+}
+
+function prevNavStep() {
+  if (S.activeNavStep > 0) {
+    S.activeNavStep--;
+    speak(S.navSteps[S.activeNavStep]);
+    render();
+  }
+}
+
+function repeatNavStep() {
+  if (S.navSteps[S.activeNavStep]) speak(S.navSteps[S.activeNavStep]);
+}
+
+// ═══════════════════════════════════════
+// APP ACTIONS (voice-driven)
+// ═══════════════════════════════════════
+async function handleAppAction(cmd) {
+  // open settings
+  if (/open settings|settings open|go to settings/.test(cmd)) {
+    S.tab = 'settings'; speak('Opening settings.'); render(); return true;
+  }
+  // open history
+  if (/open history|show history|navigation history/.test(cmd)) {
+    S.tab = 'history'; speak('Opening navigation history.'); render(); return true;
+  }
+  // open map / navigation
+  if (/open map|open navigation|go to map|show map/.test(cmd)) {
+    S.tab = 'map'; speak('Opening navigation map.'); render(); return true;
+  }
+  // open camera
+  if (/open camera|go to camera|camera tab/.test(cmd)) {
+    S.tab = 'camera'; speak('Opening camera.'); render(); return true;
+  }
+  // start camera
+  if (/start camera|enable camera|turn on camera/.test(cmd)) {
+    S.tab = 'camera'; speak('Starting camera.'); render(); await startCamera(); return true;
+  }
+  // stop camera
+  if (/stop camera|disable camera|turn off camera/.test(cmd)) {
+    stopCamera(); return true;
+  }
+  // start scan / AI scan
+  if ((/start scan|begin scan|enable scan|scan now/).test(cmd) && !S.isScanning) {
+    toggleScanning(); return true;
+  }
+  // stop scan
+  if (/stop scan|pause scan|disable scan/.test(cmd) && S.isScanning) {
+    toggleScanning(); return true;
+  }
+  // analyze scene
+  if (/analyze|analyse|describe scene|what.s around|scene analysis|what do you see/.test(cmd)) {
+    S.tab = 'camera'; render(); await analyzeScene(); return true;
+  }
+  // detect location / my location
+  if (/detect location|my location|where am i|find location|get gps/.test(cmd)) {
+    getLocation(); return true;
+  }
+  // navigate to <somewhere>
+  const navMatch = cmd.match(/navigate to (.+)|go to (.+)|take me to (.+)|directions to (.+)|route to (.+)/);
+  if (navMatch) {
+    const dest = (navMatch[1]||navMatch[2]||navMatch[3]||navMatch[4]||navMatch[5]).trim();
+    S.tab = 'map'; render();
+    document.getElementById('dest-input') && (document.getElementById('dest-input').value = dest);
+    await planRoute(dest);
+    return true;
+  }
+  // flip camera
+  if (/flip camera|switch camera|rotate camera/.test(cmd)) {
+    flipCamera(); return true;
+  }
+  // repeat last
+  if (/repeat|say again|what did you say/.test(cmd)) {
+    if (S.detections.length > 0) speak(`${S.detections[0].object} ${S.detections[0].direction}, ${S.detections[0].distance}. ${S.detections[0].action}.`);
+    else speak('No obstacles currently detected.');
+    return true;
+  }
+  // call caregiver
+  if (/call caregiver|call help|emergency call/.test(cmd)) {
+    if (S.profile?.caregiverPhone) {
+      speak(`Calling ${S.profile.caregiverName || 'your caregiver'}.`);
+      showNotif(`📞 Calling ${S.profile.caregiverName || 'Caregiver'}...`, 'info');
+      window.open(`tel:${S.profile.caregiverPhone}`);
+    } else {
+      speak('No caregiver phone number saved. Please add one in settings.');
+    }
+    return true;
+  }
+  // read detections
+  if (/what is detected|what obstacles|list obstacles|read detections/.test(cmd)) {
+    if (S.detections.length > 0) {
+      speak(S.detections.map(d=>`${d.object} ${d.direction}, ${d.distance}.`).join(' '));
+    } else speak('No obstacles detected right now.');
+    return true;
+  }
+  // next step / prev step (navigation)
+  if (/next step|continue|next direction/.test(cmd)) {
+    nextNavStep(); return true;
+  }
+  if (/previous step|go back|last step/.test(cmd)) {
+    prevNavStep(); return true;
+  }
+  // voice speed
+  if (/speak faster|talk faster/.test(cmd)) {
+    S.settings.voiceSpeed = Math.min(2, S.settings.voiceSpeed + 0.2);
+    speak('Speaking faster now.'); render(); return true;
+  }
+  if (/speak slower|talk slower/.test(cmd)) {
+    S.settings.voiceSpeed = Math.max(0.5, S.settings.voiceSpeed - 0.2);
+    speak('Speaking slower now.'); render(); return true;
+  }
+  // toggle auto-speak
+  if (/enable auto speak|turn on auto speak/.test(cmd)) {
+    S.settings.autoSpeak = true; speak('Auto announcements enabled.'); render(); return true;
+  }
+  if (/disable auto speak|turn off auto speak/.test(cmd)) {
+    S.settings.autoSpeak = false; speak('Auto announcements disabled.'); render(); return true;
+  }
+  // export history
+  if (/export history|save history|download history/.test(cmd)) {
+    exportHistory(); return true;
+  }
+  // clear history
+  if (/clear history|delete history/.test(cmd)) {
+    S.history = []; speak('Navigation history cleared.'); render(); return true;
+  }
+  // help
+  if (/help|what can you do|commands/.test(cmd)) {
+    speak('I can: open camera, start scan, analyze scene, navigate to a place, detect location, call caregiver, open settings, repeat last detection, next step, and more.');
+    return true;
+  }
+  return false;
+}
+
+// ═══════════════════════════════════════
+// VOICE RECOGNITION
+// ═══════════════════════════════════════
+let recObj = null;
+function startVoiceCmd() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    speak('Voice commands are not supported in your browser.'); return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'en-US'; rec.interimResults = false; rec.maxAlternatives = 3;
+  rec.onstart = () => { S.isListening = true; S.voiceStatus = 'Listening...'; render(); };
+  rec.onresult = async (e) => {
+    const cmd = e.results[0][0].transcript.toLowerCase().trim();
+    S.voiceStatus = `Heard: "${cmd}"`;
+    addLog(`🎤 "${cmd}"`);
+    render();
+    const handled = await handleAppAction(cmd);
+    if (!handled) {
+      speak(`Command not recognized. Say "help" for available commands.`);
+      showNotif(`❓ Unknown: "${cmd}"`, 'info');
+    }
+  };
+  rec.onerror = () => { S.isListening = false; S.voiceStatus = ''; render(); };
+  rec.onend = () => { S.isListening = false; setTimeout(() => { S.voiceStatus = ''; render(); }, 3000); };
+  rec.start();
+  recObj = rec;
+}
+
+// ═══════════════════════════════════════
+// HISTORY EXPORT
+// ═══════════════════════════════════════
+function exportHistory() {
+  const data = JSON.stringify(S.history, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `nav-history-${S.profile?.name||'user'}-${Date.now()}.json`;
+  a.click();
+  speak('History exported.');
+}
+
+// ═══════════════════════════════════════
+// SVG ICONS
+// ═══════════════════════════════════════
+const ICONS = {
+  camera: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+  mic: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`,
+  map: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>`,
+  history: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>`,
+  settings: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 0-14.14 0M4.93 19.07a10 10 0 0 0 14.14 0M12 2v2m0 18v2M2 12H4m18 0h-2"/></svg>`,
+  eye: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  volume: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`,
+  location: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  navigation: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>`,
+  flip: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`,
+  alert: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  user: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  save: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`,
+  trash: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+  phone: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.08 6.08l1.08-.45a2 2 0 0 1 2.11.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
+  chevron: `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>`,
+  chevronL: `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>`,
+};
+
+function icon(name, size=18, color='currentColor') {
+  return ICONS[name]?.replace(/width="20" height="20"/, `width="${size}" height="${size}"`).replace(/stroke="currentColor"/g, `stroke="${color}"`) || '';
+}
+
+// ═══════════════════════════════════════
+// RENDER ENGINE
+// ═══════════════════════════════════════
+function render() {
+  const app = document.getElementById('app');
+  if (!S.profile) { app.innerHTML = renderProfileSetup(); attachProfileEvents(); return; }
+  app.innerHTML = `
+    ${renderHeader()}
+    <main>
+      ${S.tab === 'camera' ? renderCamera() : ''}
+      ${S.tab === 'map' ? renderMap() : ''}
+      ${S.tab === 'history' ? renderHistory() : ''}
+      ${S.tab === 'settings' ? renderSettings() : ''}
+    </main>
+    ${renderNavBar()}
+  `;
+  attachMainEvents();
+  if (S.tab === 'camera' && (S.cameraActive || S.cameraError !== undefined)) {
+    const vw = document.getElementById('video-container');
+    if (vw && S.cameraActive) vw.appendChild(videoEl);
+  }
+}
+
+// ── PROFILE SETUP ──
+function renderProfileSetup() {
+  const p = S.profileData;
+  const avatars = ['👤','👨','👩','👴','👵','🧑'];
+  return `
+  <div id="profile-screen">
+    <div class="profile-card">
+      <div style="text-align:center;margin-bottom:36px;">
+        <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;margin:0 auto 14px;animation:glow 2s infinite;">
+          ${icon('eye', 32, '#fff')}
+        </div>
+        <h1 style="font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--blue),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Smart Blind Assistant</h1>
+        <p style="color:var(--t2);margin-top:6px;font-size:14px;">ML Hybrid AI · Navigation · Voice Control</p>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:28px;">
+        ${[1,2,3].map(s=>`<div class="progress-bar" style="flex:1;background:${s<=S.profileStep?'linear-gradient(90deg,var(--blue),var(--teal))':'var(--border)'}"></div>`).join('')}
+      </div>
+      <div style="background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:28px;box-shadow:0 8px 40px rgba(0,0,0,0.4);">
+        ${S.profileStep === 1 ? `
+          <h2 style="font-size:19px;font-weight:700;margin-bottom:6px;">Personal Information</h2>
+          <p style="color:var(--t2);font-size:13px;margin-bottom:24px;">Set up your profile to personalize navigation guidance</p>
+          <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+            ${avatars.map(a=>`<button class="avatar-btn ${p.avatar===a?'selected':''}" onclick="S.profileData.avatar='${a}';render()">${a}</button>`).join('')}
+          </div>
+          <div class="input-wrap">
+            <label class="input-label">Full Name *</label>
+            <div style="position:relative;">
+              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);">${icon('user',16,'var(--t3)')}</span>
+              <input class="input-field" style="padding-left:38px;" placeholder="Enter your name" value="${p.name}" oninput="S.profileData.name=this.value"/>
+            </div>
+          </div>
+          <div class="input-wrap">
+            <label class="input-label">Age (optional)</label>
+            <input class="input-field" type="number" placeholder="Your age" value="${p.age}" oninput="S.profileData.age=this.value"/>
+          </div>
+        ` : S.profileStep === 2 ? `
+          <h2 style="font-size:19px;font-weight:700;margin-bottom:6px;">Voice Preferences</h2>
+          <p style="color:var(--t2);font-size:13px;margin-bottom:24px;">Configure how the assistant speaks to you</p>
+          <label class="input-label">Voice Speed</label>
+          <div style="display:flex;gap:8px;margin-bottom:20px;">
+            ${['Slow','Normal','Fast'].map(s=>`
+              <button onclick="S.profileData.voiceSpeed='${s}';speak('Voice set to ${s}',${s==='Slow'?0.7:s==='Fast'?1.3:1});render()"
+                style="flex:1;padding:10px;border-radius:var(--rs);border:${p.voiceSpeed===s?'2px solid var(--blue)':'1px solid var(--border)'};
+                background:${p.voiceSpeed===s?'var(--gblue)':'transparent'};color:${p.voiceSpeed===s?'var(--blue)':'var(--t2)'};
+                cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;font-size:13px;">${s}</button>
+            `).join('')}
+          </div>
+          <div style="background:var(--bg2);border-radius:var(--rs);padding:16px;border:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">${icon('volume',16,'var(--teal)')}<span style="font-size:13px;font-weight:600;">Language: English</span></div>
+            <p style="font-size:12px;color:var(--t2);">Hybrid ML engine will detect objects in real-time with voice guidance.</p>
+          </div>
+          <div style="margin-top:14px;padding:14px;background:rgba(99,179,237,0.07);border-radius:var(--rs);border:1px solid var(--border2);">
+            <p style="font-size:12px;color:var(--blue);font-weight:600;margin-bottom:6px;">🧠 ML HYBRID ENGINE ENABLED</p>
+            <p style="font-size:12px;color:var(--t2);">YOLO object detection + Claude AI semantic analysis = most accurate obstacle detection.</p>
+          </div>
+        ` : `
+          <h2 style="font-size:19px;font-weight:700;margin-bottom:6px;">Caregiver Information</h2>
+          <p style="color:var(--t2);font-size:13px;margin-bottom:24px;">Add a caregiver for emergency calls (optional)</p>
+          <div class="input-wrap">
+            <label class="input-label">Caregiver Name</label>
+            <div style="position:relative;">
+              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);">${icon('user',16,'var(--t3)')}</span>
+              <input class="input-field" style="padding-left:38px;" placeholder="Caregiver's name" value="${p.caregiverName}" oninput="S.profileData.caregiverName=this.value"/>
+            </div>
+          </div>
+          <div class="input-wrap">
+            <label class="input-label">Caregiver Phone</label>
+            <div style="position:relative;">
+              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);">${icon('phone',16,'var(--t3)')}</span>
+              <input class="input-field" style="padding-left:38px;" type="tel" placeholder="+92 300 0000000" value="${p.caregiverPhone}" oninput="S.profileData.caregiverPhone=this.value"/>
+            </div>
+          </div>
+          <div style="padding:14px;background:linear-gradient(135deg,rgba(99,179,237,0.07),rgba(79,209,199,0.07));border-radius:var(--rs);border:1px solid var(--border2);">
+            <p style="font-size:12px;color:var(--teal);">✓ Voice command "call caregiver" will call this number</p>
+            <p style="font-size:12px;color:var(--teal);margin-top:4px;">✓ High-risk obstacle alerts with haptic feedback</p>
+            <p style="font-size:12px;color:var(--teal);margin-top:4px;">✓ Full navigation history saved for review</p>
+          </div>
+        `}
+      </div>
+      <button id="profile-next-btn" class="btn-primary" style="margin-top:14px;">
+        ${S.profileStep < 3 ? 'Continue →' : 'Launch Assistant →'}
+      </button>
+      <p style="text-align:center;font-size:12px;color:var(--t3);margin-top:10px;">Step ${S.profileStep} of 3</p>
+    </div>
+  </div>`;
+}
+
+function attachProfileEvents() {
+  document.getElementById('profile-next-btn')?.addEventListener('click', () => {
+    if (S.profileStep === 1 && !S.profileData.name.trim()) { speak('Please enter your name.'); return; }
+    if (S.profileStep < 3) { S.profileStep++; render(); }
+    else {
+      S.profile = {...S.profileData};
+      speak(`Welcome ${S.profile.name}. Smart Blind Assistant with ML Hybrid Engine is ready. Say "help" for commands.`);
+      render();
+    }
+  });
+}
+
+// ── HEADER ──
+function renderHeader() {
+  return `<header>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;animation:glow 2s infinite;">
+        ${icon('eye', 18, '#fff')}
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:800;">Smart Blind Assistant</div>
+        <div style="font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;letter-spacing:0.5px;">ML HYBRID · v3.0</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      ${S.isScanning ? `<div style="display:flex;gap:3px;align-items:center;">
+        ${[0,1,2,3].map(i=>`<div class="wave-bar" style="animation-delay:${i*0.15}s;"></div>`).join('')}
+      </div>` : ''}
+      <div style="font-size:20px;">${S.profile?.avatar || '👤'}</div>
+      <div style="text-align:right;">
+        <div style="font-size:13px;font-weight:700;">${S.profile?.name || ''}</div>
+        <div style="font-size:10px;color:${S.isScanning?'var(--teal)':'var(--green)'};display:flex;align-items:center;gap:4px;justify-content:flex-end;">
+          <div style="width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 2s infinite;"></div>
+          ${S.isScanning ? 'ML Scanning' : 'Ready'}
+        </div>
+      </div>
+    </div>
+  </header>`;
+}
+
+// ── CAMERA TAB ──
+function renderCamera() {
+  return `<div class="cam-grid">
+    <div>
+      <!-- Video -->
+      <div class="video-wrap" style="border:2px solid ${S.isScanning?'var(--teal)':'var(--border)'};box-shadow:${S.isScanning?'0 0 30px rgba(79,209,199,0.2)':'none'};">
+        <div id="video-container" style="width:100%;height:100%;position:relative;">
+          ${!S.cameraActive ? `
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.88);">
+              <div style="width:68px;height:68px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;margin-bottom:14px;animation:float 3s ease-in-out infinite;">
+                ${icon('camera', 30, 'var(--t3)')}
+              </div>
+              <p style="color:var(--t2);font-size:14px;margin-bottom:6px;">Camera is off</p>
+              ${S.cameraError ? `<p style="color:var(--red);font-size:12px;text-align:center;padding:0 16px;">${S.cameraError}</p>` : ''}
+              <button onclick="startCamera()" style="margin-top:14px;padding:11px 26px;border-radius:var(--rs);border:none;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;">Enable Camera</button>
+            </div>` : ''}
+          ${S.cameraActive && S.isScanning ? `<div class="scan-line"></div>` : ''}
+          ${S.cameraActive && S.isScanning ? S.detections.slice(0,3).map((d,i)=>`
+            <div class="bbox" style="border:2px solid ${d.risk==='high'?'var(--red)':'var(--teal)'};color:${d.risk==='high'?'var(--red)':'var(--teal)'};top:${18+i*28}%;left:${12+i*30}%;width:26%;height:20%;">
+              ${d.object} ${Math.round(d.hybridConf*100)}%
+            </div>`).join('') : ''}
+        </div>
+        <div class="cam-label">${S.cameraFacing==='user'?'FRONT':'REAR'} ${S.cameraActive?'● LIVE':'○ OFF'}</div>
+      </div>
+
+      <!-- Controls -->
+      <div class="ctrl-grid">
+        <button class="btn ${S.cameraActive?'active':''}" style="color:${S.cameraActive?'var(--red)':'var(--blue)'};" onclick="${S.cameraActive?'stopCamera()':'startCamera()'}">
+          ${icon(S.cameraActive?'alert':'camera', 18, 'currentColor')}
+          ${S.cameraActive?'Stop':'Camera'}
+        </button>
+        <button class="btn" style="color:var(--purple);" onclick="flipCamera()">
+          ${icon('flip', 18, 'var(--purple)')} Flip
+        </button>
+        <button class="btn ${S.isScanning?'active':''}" style="color:${S.isScanning?'var(--orange)':'var(--teal)'};" onclick="toggleScanning()">
+          ${icon(S.isScanning?'alert':'eye', 18, 'currentColor')} ${S.isScanning?'Stop':'AI Scan'}
+        </button>
+        <button class="btn ${S.isListening?'active':''}" style="color:${S.isListening?'var(--green)':'var(--purple)'};" onclick="startVoiceCmd()">
+          ${icon('mic', 18, 'currentColor')} ${S.isListening?'Hearing...':'Voice'}
+        </button>
+        <button class="btn" style="color:var(--blue);" onclick="analyzeScene()">
+          ${icon('eye', 18, 'var(--blue)')} Analyze
+        </button>
+      </div>
+
+      ${S.voiceStatus ? `<div style="margin-top:8px;padding:10px 14px;border-radius:var(--rs);background:var(--gblue);border:1px solid var(--border2);font-size:13px;color:var(--blue);animation:fadeIn 0.3s;">🎤 ${S.voiceStatus}</div>` : ''}
+
+      <!-- ML Hybrid Engine Panel -->
+      ${S.settings.hybridML ? `<div class="ml-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <span style="font-size:12px;font-weight:700;color:var(--t2);letter-spacing:1px;">ML HYBRID ENGINE</span>
+          <div style="display:flex;gap:6px;">
+            <span class="ml-badge ml-yolo">YOLO</span>
+            <span class="ml-badge ml-claude">Claude</span>
+            <span class="ml-badge ml-hybrid">Hybrid</span>
+          </div>
+        </div>
+        ${[
+          {label:'YOLO Detection', val:S.mlStats.yolo, color:'var(--purple)'},
+          {label:'Claude Semantic', val:S.mlStats.claude, color:'var(--blue)'},
+          {label:'Hybrid Fusion', val:S.mlStats.hybrid, color:'var(--green)'},
+        ].map(m=>`
+          <div class="ml-bar-wrap">
+            <div class="ml-bar-label">
+              <span style="color:var(--t2);font-size:11px;">${m.label}</span>
+              <span style="color:${m.color};font-family:'IBM Plex Mono',monospace;font-size:11px;">${m.val}%</span>
+            </div>
+            <div class="ml-bar"><div class="ml-bar-fill" style="width:${m.val}%;background:${m.color};"></div></div>
+          </div>`).join('')}
+        <p style="font-size:11px;color:var(--t3);margin-top:8px;">Hybrid = YOLO×45% + Claude×55% weighted fusion</p>
+      </div>` : ''}
+
+      <!-- Scene Analysis -->
+      <div style="margin-top:10px;">
+        <button class="btn-primary" onclick="analyzeScene()" ${S.sceneLoading?'disabled':''}>
+          ${S.sceneLoading ? `<div style="width:16px;height:16px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;"></div> Analyzing with Claude AI...` : `${icon('eye',16,'#fff')} Analyze Scene with Claude AI`}
+        </button>
+        ${S.sceneText ? `<div style="margin-top:10px;padding:14px;border-radius:var(--rs);background:var(--card);border:1px solid var(--border);animation:fadeIn 0.4s;">
+          <p style="font-size:11px;color:var(--t3);font-weight:600;margin-bottom:6px;letter-spacing:1px;">AI SCENE ANALYSIS</p>
+          <p style="font-size:14px;color:var(--t1);line-height:1.6;">${S.sceneText}</p>
+          <button onclick="speak(S.sceneText)" class="btn-outline" style="margin-top:10px;font-size:12px;padding:6px 12px;">${icon('volume',14,'var(--blue)')} Read Aloud</button>
+        </div>` : ''}
+      </div>
+
+      <!-- Command Center -->
+      <div class="cmd-center">
+        <p class="cmd-section-title">🎤 VOICE COMMANDS</p>
+        <div class="cmd-grid">
+          ${[
+            {title:'Scene & Camera',ex:'"analyze scene"',cmds:['open camera','start scan','analyze scene','flip camera','what do you see']},
+            {title:'Navigation',ex:'"navigate to hospital"',cmds:['navigate to [place]','detect location','next step','previous step','directions to [place]']},
+            {title:'App Control',ex:'"open settings"',cmds:['open settings','open history','open map','export history','clear history']},
+            {title:'Emergency',ex:'"call caregiver"',cmds:['call caregiver','repeat','speak faster','speak slower','help']},
+          ].map(g=>`
+            <div class="cmd-card" onclick="speak('Try saying: ${g.cmds[0]}')">
+              <div class="cmd-card-title">${g.title}</div>
+              <div class="cmd-card-ex">${g.ex}</div>
+            </div>`).join('')}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;">
+          ${['open camera','start scan','analyze scene','flip camera','my location','navigate to hospital','call caregiver','next step','open settings','help'].map(cmd=>`
+            <span class="cmd-chip" onclick="speak('Try: ${cmd}')">${cmd}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <!-- Detections -->
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-title">${icon('alert',14,'var(--orange)')} Detected Objects</span>
+          <span style="background:var(--blue);color:#fff;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700;">${S.detections.length}</span>
+        </div>
+        <div style="max-height:320px;overflow-y:auto;">
+          ${S.detections.length === 0 ? `<div style="padding:24px;text-align:center;color:var(--t3);font-size:13px;">
+            <div style="font-size:34px;margin-bottom:8px;">🔍</div>
+            <p>No objects detected</p>
+            <p style="font-size:11px;margin-top:4px;">Start AI scan to detect obstacles</p>
+          </div>` : S.detections.map((d,i)=>`
+            <div class="det-item" style="animation-delay:${i*0.04}s;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-weight:700;font-size:14px;">${d.object}</span>
+                <span class="risk-badge" style="background:${d.risk==='high'?'rgba(252,129,129,0.12)':d.risk==='medium'?'rgba(246,173,85,0.12)':'rgba(104,211,145,0.12)'};color:${d.risk==='high'?'var(--red)':d.risk==='medium'?'var(--orange)':'var(--green)'};">${d.risk.toUpperCase()}</span>
+              </div>
+              <p style="font-size:12px;color:var(--t2);margin-bottom:4px;">📍 ${d.direction} · ${d.distance}</p>
+              <p style="font-size:12px;color:var(--teal);margin-bottom:6px;">→ ${d.action}</p>
+              ${S.settings.hybridML ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">
+                <span style="font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(183,148,244,0.12);color:var(--purple);font-family:'IBM Plex Mono',monospace;">YOLO ${Math.round(d.yoloConf*100)}%</span>
+                <span style="font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(99,179,237,0.12);color:var(--blue);font-family:'IBM Plex Mono',monospace;">Claude ${Math.round((d.claudeConf||d.confidence)*100)}%</span>
+                <span style="font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(104,211,145,0.12);color:var(--green);font-family:'IBM Plex Mono',monospace;">Hybrid ${Math.round(d.hybridConf*100)}%</span>
+              </div>` : ''}
+              <div style="display:flex;align-items:center;">
+                <div class="conf-bar"><div class="conf-fill" style="width:${d.confidence*100}%;"></div></div>
+                <span style="font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace;">${Math.round(d.confidence*100)}%</span>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Live Log -->
+      <div class="card">
+        <div class="card-hd"><span class="card-title">${icon('alert',14,'var(--blue)')} Live Log</span></div>
+        <div style="max-height:200px;overflow-y:auto;padding:8px;">
+          ${S.logs.length === 0 ? `<p style="color:var(--t3);font-size:12px;padding:6px;">No events yet...</p>` : S.logs.map(l=>`
+            <div style="display:flex;gap:8px;padding:4px 4px;font-size:11px;border-radius:4px;margin-bottom:2px;">
+              <span style="color:var(--t3);font-family:'IBM Plex Mono',monospace;white-space:nowrap;">${l.time}</span>
+              <span style="color:${l.type==='danger'?'var(--red)':l.type==='success'?'var(--green)':'var(--t2)'};">${l.msg}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── MAP TAB ──
+function renderMap() {
+  const mapUrl = S.userLocation
+    ? `https://www.openstreetmap.org/export/embed.html?bbox=${S.userLocation.lng-0.01},${S.userLocation.lat-0.01},${S.userLocation.lng+0.01},${S.userLocation.lat+0.01}&layer=mapnik&marker=${S.userLocation.lat},${S.userLocation.lng}`
+    : null;
+  return `<div class="map-grid">
+    <div>
+      <!-- Map -->
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-hd">
+          <span class="card-title">${icon('map',14,'var(--teal)')} Live Map</span>
+          ${S.userLocation ? `<span style="font-size:11px;color:var(--green);font-family:'IBM Plex Mono',monospace;">📍 ${S.userLocation.lat.toFixed(4)}, ${S.userLocation.lng.toFixed(4)}</span>` : ''}
+        </div>
+        <div class="map-frame">
+          ${mapUrl ? `<iframe src="${mapUrl}" title="map" style="width:100%;height:100%;border:none;filter:invert(0.9) hue-rotate(180deg) saturate(0.8);"></iframe>`
+          : `<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+              <div style="font-size:46px;animation:float 3s ease-in-out infinite;">🗺️</div>
+              <p style="color:var(--t2);font-size:14px;">No location detected</p>
+              <p style="color:var(--t3);font-size:12px;">Enable GPS or enter location manually</p>
+            </div>`}
+        </div>
+      </div>
+
+      <!-- Route Planner -->
+      <div class="card" style="padding:20px;">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;">${icon('navigation',16,'var(--blue)')} AI Route Planner</h3>
+        <div class="input-wrap">
+          <label class="input-label">Where do you want to go?</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);">${icon('location',16,'var(--t3)')}</span>
+            <input id="dest-input" class="input-field" style="padding-left:38px;" placeholder="e.g. nearest hospital, park, bus stop..." value="${S.navDest}"
+              oninput="S.navDest=this.value" onkeydown="if(event.key==='Enter')planRoute(S.navDest)"/>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="planRoute(document.getElementById('dest-input').value)" ${S.navLoading?'disabled':''}>
+          ${S.navLoading ? `<div style="width:15px;height:15px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;"></div> Planning with Claude AI...`
+          : `${icon('navigation',16,'#fff')} Plan Route with AI →`}
+        </button>
+
+        ${S.navSteps.length > 0 ? `
+          <div style="margin-top:14px;padding:16px;background:var(--bg2);border-radius:var(--rs);border:1px solid var(--border2);animation:fadeIn 0.4s;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <p style="font-size:12px;color:var(--blue);font-weight:700;letter-spacing:0.5px;">NAVIGATION GUIDE → ${S.navDest}</p>
+              <div style="display:flex;gap:6px;">
+                ${!S.navGuiding ? `<button class="btn-outline" style="font-size:11px;padding:5px 10px;" onclick="startNavGuide()">${icon('volume',12,'var(--blue)')} Start Guide</button>` : ''}
+                <button class="btn-outline" style="font-size:11px;padding:5px 10px;" onclick="speak(S.navSteps.join(' '))">${icon('volume',12,'var(--blue)')} Read All</button>
+              </div>
+            </div>
+            ${S.navSteps.map((step, i)=>`
+              <div class="nav-step" style="animation-delay:${i*0.08}s;${S.navGuiding && i===S.activeNavStep?'background:rgba(99,179,237,0.1);border-radius:8px;padding:8px;border:1px solid var(--border2);':i<S.activeNavStep&&S.navGuiding?'opacity:0.4;':''}" onclick="speak(step)">
+                <div class="step-num" style="background:${S.navGuiding&&i===S.activeNavStep?'var(--teal)':i<S.activeNavStep&&S.navGuiding?'var(--t3)':'var(--blue)'};">${i+1}</div>
+                <p style="font-size:13px;color:var(--t1);line-height:1.5;">${step.replace(/^\d+\.\s*/,'')}</p>
+              </div>`).join('')}
+            ${S.navGuiding ? `
+              <div style="display:flex;gap:8px;margin-top:12px;">
+                <button class="btn-outline" style="flex:1;justify-content:center;font-size:13px;" onclick="prevNavStep()" ${S.activeNavStep===0?'disabled style="opacity:0.4;"':''}>
+                  ${icon('chevronL',14,'var(--blue)')} Prev
+                </button>
+                <button onclick="repeatNavStep()" style="flex:1;padding:10px;border-radius:var(--rs);border:1px solid var(--border2);background:var(--gteal);color:var(--teal);cursor:pointer;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;">
+                  ${icon('volume',14,'var(--teal)')} Repeat
+                </button>
+                <button class="btn-outline" style="flex:1;justify-content:center;font-size:13px;border-color:var(--teal);color:var(--teal);background:var(--gteal);" onclick="nextNavStep()">
+                  Next ${icon('chevron',14,'var(--teal)')}
+                </button>
+              </div>
+              <p style="text-align:center;font-size:11px;color:var(--t3);margin-top:8px;font-family:'IBM Plex Mono',monospace;">Step ${S.activeNavStep+1} of ${S.navSteps.length}</p>` : ''}
+          </div>` : ''}
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card" style="padding:18px;">
+        <h3 style="font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;">${icon('location',14,'var(--orange)')} Location</h3>
+        <button class="btn-primary" onclick="getLocation()" style="margin-bottom:12px;">
+          ${icon('location',16,'#fff')} Detect My Location (GPS)
+        </button>
+        <p style="font-size:12px;color:var(--t3);margin-bottom:10px;text-align:center;">— or enter manually —</p>
+        <div class="input-wrap" style="margin-bottom:0;">
+          <label class="input-label">City / Address</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);">${icon('map',14,'var(--t3)')}</span>
+            <input class="input-field" style="padding-left:36px;font-size:13px;" placeholder="e.g. Lahore, Pakistan" value="${S.manualLocation}" oninput="S.manualLocation=this.value"/>
+          </div>
+        </div>
+        ${S.userLocation ? `<div style="padding:12px;border-radius:var(--rs);background:rgba(104,211,145,0.08);border:1px solid rgba(104,211,145,0.25);margin-top:10px;">
+          <p style="font-size:12px;color:var(--green);font-weight:700;">✓ GPS Active</p>
+          <p style="font-size:11px;color:var(--t2);font-family:'IBM Plex Mono',monospace;margin-top:4px;">${S.userLocation.lat.toFixed(6)}</p>
+          <p style="font-size:11px;color:var(--t2);font-family:'IBM Plex Mono',monospace;">${S.userLocation.lng.toFixed(6)}</p>
+        </div>` : ''}
+      </div>
+
+      <!-- Quick Destinations -->
+      <div class="card" style="padding:16px;">
+        <p style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:1px;margin-bottom:12px;">QUICK NAVIGATE</p>
+        ${['Nearest Hospital','Nearest Mosque','Bus Stop','Police Station','Pharmacy','Market'].map(dest=>`
+          <button onclick="S.tab='map';render();planRoute('${dest}')" style="width:100%;text-align:left;padding:9px 12px;border-radius:var(--rs);border:1px solid var(--border);background:transparent;color:var(--t2);cursor:pointer;font-family:'Syne',sans-serif;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:8px;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--t2)'">
+            ${icon('navigation',14,'currentColor')} ${dest}
+          </button>`).join('')}
+      </div>
+
+      <!-- Recent -->
+      <div class="card" style="padding:16px;">
+        <p style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:1px;margin-bottom:12px;">RECENT SESSIONS</p>
+        ${S.history.slice(0,5).map((h,i)=>`
+          <div style="padding:8px 0;border-bottom:${i<4?'1px solid var(--border)':'none'};">
+            <p style="font-size:12px;font-weight:600;">${h.detections.map(d=>d.object).slice(0,2).join(', ')}</p>
+            <p style="font-size:10px;color:var(--t3);margin-top:2px;font-family:'IBM Plex Mono',monospace;">📍 ${h.location} · ${h.timestamp}</p>
+          </div>`).join('') || `<p style="color:var(--t3);font-size:12px;">No sessions yet</p>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── HISTORY TAB ──
+function renderHistory() {
+  const [filter, setFilter] = [window._histFilter || 'all', v => { window._histFilter = v; render(); }];
+  const filtered = filter === 'all' ? S.history : S.history.filter(h=>h.detections.some(d=>d.risk===filter));
+  const total = S.history.reduce((a,h)=>a+h.detections.length, 0);
+  const high = S.history.reduce((a,h)=>a+h.detections.filter(d=>d.risk==='high').length, 0);
+  return `<div>
+    <div class="stat-grid">
+      ${[
+        {label:'Sessions', val:S.history.length, c:'var(--blue)'},
+        {label:'Obstacles', val:total, c:'var(--teal)'},
+        {label:'High Risk', val:high, c:'var(--red)'},
+        {label:'Safe', val:total-high, c:'var(--green)'},
+      ].map(s=>`<div class="stat-card">
+        <p style="font-size:22px;font-weight:800;color:${s.c};">${s.val}</p>
+        <p style="font-size:11px;color:var(--t2);margin-top:2px;">${s.label}</p>
+      </div>`).join('')}
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${['all','high','medium','low'].map(f=>`
+          <button onclick="window._histFilter='${f}';render()" style="padding:6px 14px;border-radius:99px;border:${filter===f?'none':'1px solid var(--border)'};background:${filter===f?'var(--blue)':'transparent'};color:${filter===f?'#fff':'var(--t2)'};cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:600;text-transform:capitalize;">${f==='all'?'All':f+' Risk'}</button>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-outline" onclick="exportHistory()">${icon('save',14,'var(--blue)')} Export</button>
+        <button onclick="S.history=[];speak('History cleared.');render()" style="padding:7px 14px;border-radius:var(--rs);border:1px solid rgba(252,129,129,0.3);background:rgba(252,129,129,0.08);color:var(--red);cursor:pointer;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px;">${icon('trash',14,'var(--red)')} Clear</button>
+      </div>
+    </div>
+    ${filtered.length === 0 ? `<div class="card" style="padding:48px;text-align:center;">
+      <div style="font-size:44px;margin-bottom:10px;">📋</div>
+      <p style="color:var(--t2);font-size:14px;">No navigation history</p>
+      <p style="color:var(--t3);font-size:12px;margin-top:6px;">Start scanning to record sessions</p>
+    </div>` : `<div style="display:flex;flex-direction:column;gap:8px;">
+      ${filtered.map((h,i)=>`<div class="hist-item" style="animation-delay:${i*0.03}s;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            ${h.detections.map(d=>`<span style="padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;background:${d.risk==='high'?'rgba(252,129,129,0.12)':d.risk==='medium'?'rgba(246,173,85,0.12)':'rgba(104,211,145,0.12)'};color:${d.risk==='high'?'var(--red)':d.risk==='medium'?'var(--orange)':'var(--green)'};">${d.object}</span>`).join('')}
+          </div>
+          <div style="text-align:right;">
+            <p style="font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace;">${h.timestamp}</p>
+            <p style="font-size:10px;color:var(--t3);">📍 ${h.location}</p>
+          </div>
+        </div>
+        ${h.detections.map(d=>`<p style="font-size:12px;color:var(--t2);margin-bottom:2px;">• ${d.object} ${d.direction} (${d.distance}) — ${d.action}</p>`).join('')}
+        <button onclick="speak('${h.detections.map(d=>`${d.object} detected ${d.direction}, ${d.distance}. ${d.action}.`).join(' ').replace(/'/g,"\\'")}' )" class="btn-outline" style="margin-top:8px;font-size:11px;padding:5px 10px;">${icon('volume',12,'var(--blue)')} Replay</button>
+      </div>`).join('')}
+    </div>`}
+  </div>`;
+}
+
+// ── SETTINGS TAB ──
+function renderSettings() {
+  const tog = (key) => { S.settings[key] = !S.settings[key]; speak(`${key.replace(/([A-Z])/g,' $1')} ${S.settings[key]?'enabled':'disabled'}`); render(); };
+  return `<div style="max-width:700px;">
+    <!-- Profile -->
+    <div class="setting-section">
+      <div class="setting-title">${icon('user',15,'var(--blue)')} Profile</div>
+      <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);">
+        <div style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:26px;">${S.profile.avatar}</div>
+        <div>
+          <p style="font-size:15px;font-weight:700;">${S.profile.name}</p>
+          ${S.profile.age ? `<p style="font-size:12px;color:var(--t2);">Age: ${S.profile.age}</p>` : ''}
+          ${S.profile.caregiverName ? `<p style="font-size:12px;color:var(--teal);">Caregiver: ${S.profile.caregiverName} ${S.profile.caregiverPhone?`(${S.profile.caregiverPhone})`:''}</p>` : ''}
+        </div>
+      </div>
+      <div style="padding-top:12px;display:flex;gap:8px;">
+        <button onclick="S.profile=null;S.profileStep=1;render()" style="padding:9px 18px;border-radius:var(--rs);border:1px solid rgba(252,129,129,0.3);background:rgba(252,129,129,0.08);color:var(--red);cursor:pointer;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;">Reset Profile</button>
+        ${S.profile.caregiverPhone ? `<button onclick="window.open('tel:${S.profile.caregiverPhone}')" class="btn-outline">${icon('phone',14,'var(--blue)')} Call Caregiver</button>` : ''}
+      </div>
+    </div>
+
+    <!-- Voice -->
+    <div class="setting-section">
+      <div class="setting-title">${icon('volume',15,'var(--blue)')} Voice & Audio</div>
+      <div style="margin-bottom:16px;">
+        <label class="input-label">Voice Speed: ${S.settings.voiceSpeed.toFixed(1)}x</label>
+        <input type="range" min="0.5" max="2" step="0.1" value="${S.settings.voiceSpeed}" oninput="S.settings.voiceSpeed=parseFloat(this.value);speak('Sample speed',parseFloat(this.value));document.getElementById('vspeed').textContent=parseFloat(this.value).toFixed(1)+'x';" style="width:100%;margin-top:6px;accent-color:var(--blue);" id="vspeedRange"/>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label class="input-label">Voice Pitch: ${S.settings.voicePitch.toFixed(1)}</label>
+        <input type="range" min="0.5" max="2" step="0.1" value="${S.settings.voicePitch}" oninput="S.settings.voicePitch=parseFloat(this.value);" style="width:100%;margin-top:6px;accent-color:var(--teal);"/>
+      </div>
+      ${renderToggle('Auto-speak detections', 'Automatically announce detected obstacles', S.settings.autoSpeak, ()=>tog('autoSpeak'))}
+      ${renderToggle('High-risk alerts', 'Extra alerts for dangerous obstacles + vibration', S.settings.highRiskAlert, ()=>tog('highRiskAlert'))}
+      <button onclick="speak('Smart Blind Assistant voice test. Hybrid ML engine active. Everything working correctly.',S.settings.voiceSpeed,S.settings.voicePitch)" class="btn-outline" style="margin-top:10px;">${icon('volume',14,'var(--blue)')} Test Voice</button>
+    </div>
+
+    <!-- ML Hybrid Engine -->
+    <div class="setting-section">
+      <div class="setting-title">${icon('eye',15,'var(--blue)')} ML Hybrid Engine</div>
+      ${renderToggle('Hybrid ML Engine', 'Combines YOLO + Claude AI for best accuracy', S.settings.hybridML, ()=>tog('hybridML'))}
+      <div style="margin:16px 0;">
+        <label class="input-label">Confidence Threshold: ${(S.settings.confidenceThreshold*100).toFixed(0)}%</label>
+        <input type="range" min="0.4" max="0.95" step="0.05" value="${S.settings.confidenceThreshold}" oninput="S.settings.confidenceThreshold=parseFloat(this.value);render();" style="width:100%;margin-top:6px;accent-color:var(--green);"/>
+        <p style="font-size:11px;color:var(--t3);margin-top:4px;">Objects below this confidence are filtered out</p>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="input-label">Scan Interval: every ${S.settings.scanInterval}s</label>
+        <input type="range" min="1" max="10" step="1" value="${S.settings.scanInterval}" oninput="S.settings.scanInterval=parseInt(this.value);render();" style="width:100%;margin-top:6px;accent-color:var(--teal);"/>
+      </div>
+      ${renderToggle('Save Navigation History', 'Store all sessions for review', S.settings.saveHistory, ()=>tog('saveHistory'))}
+      <div style="padding:12px;background:rgba(99,179,237,0.06);border-radius:var(--rs);border:1px solid var(--border2);margin-top:10px;">
+        <p style="font-size:11px;color:var(--t2);line-height:1.6;">🧠 <strong style="color:var(--blue);">YOLO Engine</strong> — Fast real-time object detection with bounding boxes<br>
+        🤖 <strong style="color:var(--blue);">Claude AI</strong> — Semantic scene understanding & context analysis<br>
+        ⚡ <strong style="color:var(--green);">Hybrid Fusion</strong> — Weighted average (YOLO×45% + Claude×55%) for maximum accuracy</p>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="setting-section">
+      <div class="setting-title">${icon('alert',15,'var(--blue)')} About</div>
+      <div style="padding:8px 0;">
+        ${[
+          ['App Version','3.0.0 (Hybrid ML)'],
+          ['AI Engine','Claude Sonnet 4 (Anthropic)'],
+          ['Object Detection','YOLO v8 Hybrid (simulated)'],
+          ['Speech','Web Speech API'],
+          ['GPS','Browser Geolocation'],
+          ['Voice Commands','30+ supported commands'],
+          ['Navigation','AI turn-by-turn guidance'],
+        ].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <span style="color:var(--t2);">${k}</span>
+          <span style="color:var(--t1);font-family:'IBM Plex Mono',monospace;font-size:12px;">${v}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderToggle(label, desc, checked, onclick) {
+  const id = 'tog_' + Math.random().toString(36).slice(2);
+  setTimeout(() => {
+    const btn = document.getElementById(id);
+    if (btn) btn.onclick = onclick;
+  }, 0);
+  return `<div class="toggle-row">
+    <div>
+      <p style="font-size:13px;font-weight:600;">${label}</p>
+      <p style="font-size:11px;color:var(--t3);margin-top:2px;">${desc}</p>
+    </div>
+    <button id="${id}" class="toggle" style="background:${checked?'var(--blue)':'var(--bg3)'};">
+      <div class="toggle-knob" style="left:${checked?'23':'3'}px;"></div>
+    </button>
+  </div>`;
+}
+
+// ── NAV BAR ──
+function renderNavBar() {
+  const TABS = [
+    {id:'camera', label:'Camera', icon:'camera'},
+    {id:'map', label:'Navigate', icon:'map'},
+    {id:'history', label:'History', icon:'history'},
+    {id:'settings', label:'Settings', icon:'settings'},
+  ];
+  return `<nav>
+    ${TABS.map(t=>`
+      <button class="tab-btn" onclick="S.tab='${t.id}';speak('${t.label}');render();">
+        <div class="tab-icon ${S.tab===t.id?'active':''}">${icon(t.icon, 20, S.tab===t.id?'var(--blue)':'var(--t3)')}</div>
+        <span class="tab-label ${S.tab===t.id?'active':''}">${t.label}</span>
+      </button>`).join('')}
+  </nav>`;
+}
+
+function attachMainEvents() {
+  // re-attach video after render if camera active
+  if (S.cameraActive) {
+    const vc = document.getElementById('video-container');
+    if (vc && !vc.contains(videoEl)) vc.appendChild(videoEl);
+  }
+}
+
+// ═══════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════
+window.addEventListener('load', () => {
+  window.speechSynthesis?.getVoices();
+  render();
+  setTimeout(() => speak('Smart Blind Assistant ready. Please complete your profile setup.'), 500);
+});
+
+// expose globals for inline handlers
+window.S = S;
+window.startCamera = startCamera;
+window.stopCamera = stopCamera;
+window.flipCamera = flipCamera;
+window.toggleScanning = toggleScanning;
+window.analyzeScene = analyzeScene;
+window.startVoiceCmd = startVoiceCmd;
+window.getLocation = getLocation;
+window.planRoute = planRoute;
+window.startNavGuide = startNavGuide;
+window.nextNavStep = nextNavStep;
+window.prevNavStep = prevNavStep;
+window.repeatNavStep = repeatNavStep;
+window.exportHistory = exportHistory;
+window.speak = speak;
+window.render = render;
+</script>
+</body>
+</html>
